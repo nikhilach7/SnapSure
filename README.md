@@ -67,20 +67,24 @@ Supported weight file names (inside `weights/`):
 
 ## Pretrained Weights
 
-This repository includes `weights/xception_deepfake.pth` so collaborators can clone and run quickly.
+This repository includes one ready-to-run checkpoint:
 
-Optional additional checkpoint:
+- `weights/xception_deepfake.pth`
 
-You can obtain checkpoints from sources such as:
+If users need another model (for example `efficientnet_b4`), they must download the checkpoint from the internet and place it inside the `weights/` folder.
+
+Sources you can use:
 
 - FaceForensics++ related model releases
 - DeepfakeBench model zoo
 - Papers with official checkpoint links for Xception/EfficientNet deepfake detection
 
-If you download extra checkpoints, place files in:
+Place downloaded files in:
 
 - `weights/xception_deepfake.pth`
 - `weights/efficientnet_b4_deepfake.pth`
+
+If `MODEL_NAME=efficientnet_b4`, then `weights/efficientnet_b4_deepfake.pth` must exist.
 
 ## Local Development
 
