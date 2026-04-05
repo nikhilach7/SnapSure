@@ -7,13 +7,7 @@ pipeline {
     }
 
     stages {
-        stage('1. Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('2. Setup Dependencies') {
+        stage('1. Setup Dependencies') {
             steps {
                 script {
                     if (isUnix()) {
@@ -62,7 +56,7 @@ pipeline {
             }
         }
 
-        stage('3. Validate + Build') {
+        stage('2. Validate + Build') {
             steps {
                 script {
                     if (isUnix()) {
@@ -137,7 +131,7 @@ pipeline {
             }
         }
 
-        stage('4. Build Docker Images') {
+        stage('3. Build Docker Images') {
             steps {
                 script {
                     if (isUnix()) {
@@ -156,7 +150,7 @@ pipeline {
             }
         }
 
-        stage('5. Deploy + Smoke Check') {
+        stage('4. Deploy + Smoke Check') {
             when {
                 expression {
                     return env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
