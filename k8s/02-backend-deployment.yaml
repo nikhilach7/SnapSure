@@ -57,5 +57,5 @@ spec:
       volumes:
       - name: weights
         hostPath:
-          path: /tmp/snapsure-weights
+          path: "/run/desktop/mnt/host/c/Users/Akhila/OneDrive/Desktop/sample projects/SnapSure/weights"
           type: Directory
