@@ -12,6 +12,7 @@ RUN pip install --upgrade pip && pip install -r /tmp/requirements.txt
 
 COPY backend /app/backend
 COPY models /app/models
+COPY weights /app/weights
 
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser

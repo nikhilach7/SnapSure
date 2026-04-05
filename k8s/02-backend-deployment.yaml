@@ -25,10 +25,6 @@ spec:
         envFrom:
         - configMapRef:
             name: backend-config
-        volumeMounts:
-        - name: weights
-          mountPath: /app/weights
-          readOnly: true
         # Health check: probe /health endpoint
         livenessProbe:
           httpGet:
@@ -54,8 +50,3 @@ spec:
           limits:
             cpu: 500m
             memory: 1Gi
-      volumes:
-      - name: weights
-        hostPath:
-          path: "/run/desktop/mnt/host/c/Users/Akhila/OneDrive/Desktop/sample projects/SnapSure/weights"
-          type: Directory
