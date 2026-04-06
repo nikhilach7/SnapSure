@@ -140,3 +140,4 @@ Then restart backend.
 
 - This project detects visual manipulation artifacts only.
 - It does not do identity verification.
+
