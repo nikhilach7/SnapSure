@@ -161,6 +161,7 @@ pipeline {
                     if (isUnix()) {
                         sh '''
                             set -e
+                            docker compose down || true
                             docker compose up -d
                             sleep 8
                             curl -f http://localhost:8000/health
@@ -168,9 +169,10 @@ pipeline {
                         '''
                     } else {
                         bat '''
+                            docker compose down
                             docker compose up -d
-                            timeout /t 8 /nobreak >nul
-                            powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing http://localhost:8000/health | Out-Null"
+                            timeout /t 60
+                            powershell -NoProfile -Command "for ($i = 0; $i -lt 10; $i++) { try { Invoke-WebRequest -UseBasicParsing http://localhost:8000/health -ErrorAction Stop; Write-Host 'Health check passed'; exit 0 } catch { if ($i -lt 9) { Write-Host 'Retrying health check...'; Start-Sleep -Seconds 5 } else { Write-Host 'Health check failed'; exit 1 } } }"
                             powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing http://localhost:3000 | Out-Null"
                         '''
                     }

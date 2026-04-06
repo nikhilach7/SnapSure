@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   backend:
     build:
@@ -10,16 +8,12 @@ services:
       - ./backend/.env.docker
     ports:
       - "8000:8000"
-    volumes:
-      - ./weights:/app/weights
 
   frontend:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
     container_name: deepfake-frontend
-    env_file:
-      - ./frontend/.env.docker
     depends_on:
       - backend
     ports:
