@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
-    container_name: deepfake-backend
     env_file:
       - ./backend/.env.docker
     ports:
@@ -13,7 +12,6 @@ services:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
-    container_name: deepfake-frontend
     depends_on:
       - backend
     ports:
