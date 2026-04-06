@@ -162,17 +162,26 @@ pipeline {
                         sh '''
                             set -e
                             docker compose down || true
+                            docker rm -f deepfake-backend deepfake-frontend >/dev/null 2>&1 || true
                             docker compose up -d
-                            sleep 8
-                            curl -f http://localhost:8000/health
+                            for i in 1 2 3 4 5; do
+                                if curl -fsS http://localhost:8000/health >/dev/null; then
+                                    break
+                                fi
+                                sleep 3
+                                if [ "$i" = "5" ]; then
+                                    echo "Backend health check failed"
+                                    exit 1
+                                fi
+                            done
                             curl -f http://localhost:3000
                         '''
                     } else {
                         bat '''
                             docker compose down
+                            powershell -NoProfile -Command "$ErrorActionPreference = 'SilentlyContinue'; docker rm -f deepfake-backend deepfake-frontend | Out-Null; exit 0"
                             docker compose up -d
-                            timeout /t 60
-                            powershell -NoProfile -Command "for ($i = 0; $i -lt 10; $i++) { try { Invoke-WebRequest -UseBasicParsing http://localhost:8000/health -ErrorAction Stop; Write-Host 'Health check passed'; exit 0 } catch { if ($i -lt 9) { Write-Host 'Retrying health check...'; Start-Sleep -Seconds 5 } else { Write-Host 'Health check failed'; exit 1 } } }"
+                            powershell -NoProfile -Command "for ($i = 0; $i -lt 5; $i++) { try { Invoke-WebRequest -UseBasicParsing http://localhost:8000/health -ErrorAction Stop | Out-Null; Write-Host 'Backend health check passed'; exit 0 } catch { if ($i -lt 4) { Write-Host 'Retrying backend health check...'; Start-Sleep -Seconds 3 } else { Write-Host 'Backend health check failed'; exit 1 } } }"
                             powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing http://localhost:3000 | Out-Null"
                         '''
                     }
