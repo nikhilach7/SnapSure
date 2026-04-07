@@ -80,7 +80,11 @@ class DeepfakeDetector:
             num_classes=2,
         )
 
-        checkpoint = torch.load(self.weights_path, map_location=self.device)
+        try:
+            checkpoint = torch.load(self.weights_path, map_location=self.device, weights_only=False)
+        except Exception as exc:
+            raise ModelConfigError(f"Failed to load weights from {self.weights_path}: {exc}") from exc
+
         state_dict = checkpoint.get("state_dict", checkpoint) if isinstance(checkpoint, dict) else checkpoint
 
         if not isinstance(state_dict, dict):
