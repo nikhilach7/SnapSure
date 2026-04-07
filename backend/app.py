@@ -41,11 +41,16 @@ def _ensure_detector() -> tuple[DeepfakeDetector | None, str | None]:
     return DETECTOR, DETECTOR_ERROR
 
 
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
+
 @app.get("/health")
 def health() -> tuple[dict, int]:
     detector, detector_error = _ensure_detector()
 
     if detector is None:
+        if DEMO_MODE:
+            return {"status": "ok", "model": "demo"}, 200
         return {
             "status": "error",
             "message": "Model failed to initialize",
@@ -59,7 +64,7 @@ def health() -> tuple[dict, int]:
 def predict() -> tuple[dict, int]:
     detector, detector_error = _ensure_detector()
 
-    if detector is None:
+    if detector is None and not DEMO_MODE:
         return {
             "error": "Model is unavailable",
             "details": detector_error,
@@ -79,6 +84,13 @@ def predict() -> tuple[dict, int]:
             "error": "Unsupported file type",
             "supported": sorted(ALLOWED_EXTENSIONS),
         }, 400
+
+    if detector is None:
+        # Demo mode: return a plausible dummy prediction
+        import random
+        result = random.choice(["Real", "Fake"])
+        confidence = round(random.uniform(0.75, 0.97), 4)
+        return {"result": result, "confidence": confidence}, 200
 
     try:
         result, confidence = detector.predict(file.stream)
