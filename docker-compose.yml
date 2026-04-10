@@ -11,10 +11,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8000/health || exit 1"]
-      interval: 10s
-      timeout: 5s
+      interval: 15s
+      timeout: 10s
       retries: 5
-      start_period: 20s            # gives gunicorn time to load weights before first check
+      start_period: 120s           # gives time for Hugging Face model download and initialization
 
   frontend:
     container_name: snapsure-frontend

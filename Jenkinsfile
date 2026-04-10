@@ -117,14 +117,15 @@ pipeline {
 
                             # Wait for backend health (compose healthcheck does the real work;
                             # we just poll here so the pipeline reports a clear failure if it's stuck)
+                            # Note: First run may take 1-2 minutes for Hugging Face model download
                             echo "Waiting for backend..."
-                            for i in $(seq 1 10); do
+                            for i in $(seq 1 30); do
                                 if curl -fs http://localhost:8000/health >/dev/null; then
                                     echo "Backend is up."
                                     break
                                 fi
-                                sleep 3
-                                if [ "$i" = "10" ]; then
+                                sleep 5
+                                if [ "$i" = "30" ]; then
                                     echo "ERROR: Backend never became healthy."
                                     docker compose -p ${COMPOSE_PROJECT} logs backend
                                     exit 1
@@ -163,9 +164,10 @@ pipeline {
 
                         bat 'docker compose -p %COMPOSE_PROJECT% up -d --no-build'
 
-                        // Health check — 10 retries × 3 s = 30 s max wait
+                        // Health check — 30 retries × 5 s = 150 s max wait
+                        // Note: First run may take 1-2 minutes for Hugging Face model download
                         powershell(script: '''
-                            $maxRetries = 10
+                            $maxRetries = 30
                             for ($i = 0; $i -lt $maxRetries; $i++) {
                                 try {
                                     Invoke-WebRequest -UseBasicParsing http://localhost:8000/health `
@@ -175,7 +177,7 @@ pipeline {
                                 } catch {
                                     if ($i -lt ($maxRetries - 1)) {
                                         Write-Host "Waiting for backend... attempt $($i+1)/$maxRetries"
-                                        Start-Sleep -Seconds 3
+                                        Start-Sleep -Seconds 5
                                     } else {
                                         Write-Host "ERROR: Backend never became healthy."
                                         exit 1

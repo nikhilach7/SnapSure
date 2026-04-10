@@ -3,6 +3,7 @@ flask-cors==4.0.1
 gunicorn==22.0.0
 pillow==10.4.0
 python-dotenv==1.0.1
-timm==1.0.8
 torch==2.10.0
 torchvision==0.25.0
+transformers==4.46.0
+facenet-pytorch==2.5.3

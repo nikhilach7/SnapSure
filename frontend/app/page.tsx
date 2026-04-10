@@ -4,8 +4,11 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
 type PredictionResponse = {
-  result?: "Real" | "Fake";
-  confidence?: number;
+  overall_label?: "REAL" | "FAKE";
+  overall_confidence?: number;
+  fake_score?: number;
+  num_faces?: number;
+  faces?: any[];
   error?: string;
   details?: string;
 };
@@ -104,20 +107,20 @@ export default function HomePage() {
             <span className="copy-muted text-xs">Realtime</span>
           </div>
 
-          {!result?.result && !error && (
+          {!result?.overall_label && !error && (
             <div className="copy-muted mt-8 text-lg">No prediction yet. Upload an image and run analysis.</div>
           )}
 
-          {result?.result && (
-            <div className={`mt-8 rounded-2xl px-5 py-6 ${result.result === "Fake" ? "verdict-fake" : "verdict-real"}`}>
-              <h2 className="headline text-5xl leading-none">{result.result}</h2>
-              {typeof result.confidence === "number" && <p className="mt-3 text-base font-medium">Confidence: {(result.confidence * 100).toFixed(2)}%</p>}
+          {result?.overall_label && (
+            <div className={`mt-8 rounded-2xl px-5 py-6 ${result.overall_label === "FAKE" ? "verdict-fake" : "verdict-real"}`}>
+              <h2 className="headline text-5xl leading-none">{result.overall_label}</h2>
+              {typeof result.overall_confidence === "number" && <p className="mt-3 text-base font-medium">Confidence: {(result.overall_confidence * 100).toFixed(2)}%</p>}
             </div>
           )}
 
           <div className="copy-muted mt-8 grid gap-4 text-sm sm:grid-cols-2">
-            <p>Primary model: Xception</p>
-            <p>Fallback model: EfficientNet-B4</p>
+            <p>Model 1: ViT Deepfake Detection</p>
+            <p>Model 2: Deepfake vs Real Image</p>
           </div>
         </article>
       </section>

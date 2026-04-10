@@ -18,12 +18,10 @@ CORS(app)
 
 
 def _build_detector() -> tuple[DeepfakeDetector | None, str | None]:
-    model_name = os.getenv("MODEL_NAME", "xception")
-    weights_dir = Path(os.getenv("WEIGHTS_DIR", str(Path(__file__).resolve().parent.parent / "weights")))
     device = os.getenv("MODEL_DEVICE", "cpu")
 
     try:
-        detector = DeepfakeDetector(model_name=model_name, weights_dir=weights_dir, device=device)
+        detector = DeepfakeDetector(device=device)
         return detector, None
     except ModelConfigError as exc:
         return None, str(exc)
@@ -57,7 +55,7 @@ def health() -> tuple[dict, int]:
             "details": detector_error,
         }, 500
 
-    return {"status": "ok", "model": detector.model_name}, 200
+    return {"status": "ok", "model": "ensemble"}, 200
 
 
 @app.post("/predict")
@@ -88,18 +86,28 @@ def predict() -> tuple[dict, int]:
     if detector is None:
         # Demo mode: return a plausible dummy prediction
         import random
-        result = random.choice(["Real", "Fake"])
-        confidence = round(random.uniform(0.75, 0.97), 4)
-        return {"result": result, "confidence": confidence}, 200
+        overall_label = random.choice(["REAL", "FAKE"])
+        fake_score = round(random.uniform(0.3, 0.8), 4)
+        if overall_label == "FAKE":
+            overall_confidence = fake_score
+        else:
+            overall_confidence = round(1.0 - fake_score, 4)
+        return {
+            "overall_label": overall_label,
+            "overall_confidence": overall_confidence,
+            "fake_score": fake_score,
+            "num_faces": random.randint(0, 3),
+            "faces": [],
+        }, 200
 
     try:
-        result, confidence = detector.predict(file.stream)
+        result = detector.predict(file.stream, return_faces=False)
     except UnidentifiedImageError:
         return {"error": "Invalid image file"}, 400
     except InferenceError as exc:
         return {"error": "Inference failed", "details": str(exc)}, 500
 
-    return {"result": result, "confidence": round(confidence, 4)}, 200
+    return result, 200
 
 
 if __name__ == "__main__":

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 from typing import BinaryIO
 
-import timm
 import torch
+from facenet_pytorch import MTCNN
 from PIL import Image, UnidentifiedImageError
-from torchvision import transforms
+from transformers import AutoImageProcessor, AutoModelForImageClassification
 
 
 class ModelConfigError(Exception):
@@ -18,53 +16,39 @@ class InferenceError(Exception):
     """Raised when inference cannot be completed."""
 
 
-@dataclass(frozen=True)
-class ModelSettings:
-    architecture: str
-    weights_filename: str
-    input_size: int
-
-
-MODEL_REGISTRY: dict[str, ModelSettings] = {
-    "xception": ModelSettings(
-        architecture="xception",
-        weights_filename="xception_deepfake.pth",
-        input_size=299,
-    ),
-    "efficientnet_b4": ModelSettings(
-        architecture="efficientnet_b4",
-        weights_filename="efficientnet_b4_deepfake.pth",
-        input_size=380,
-    ),
-}
-
-CLASS_NAMES = {0: "Real", 1: "Fake"}
-
-
 class DeepfakeDetector:
-    def __init__(self, model_name: str, weights_dir: Path, device: str = "cpu") -> None:
-        self.model_name = model_name.lower().strip()
-        if self.model_name not in MODEL_REGISTRY:
-            available = ", ".join(MODEL_REGISTRY)
-            raise ModelConfigError(f"Unknown model '{model_name}'. Available models: {available}")
+    _instance: DeepfakeDetector | None = None
+    _initialized: bool = False
 
-        self.settings = MODEL_REGISTRY[self.model_name]
+    def __new__(cls, device: str = "cpu") -> "DeepfakeDetector":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self, device: str = "cpu") -> None:
+        if self._initialized:
+            return
+
         self.device = self._resolve_device(device)
-        self.weights_path = (weights_dir / self.settings.weights_filename).resolve()
+        self.model1_name = "Wvolf/ViT_Deepfake_Detection"
+        self.model2_name = "dima806/deepfake_vs_real_image_detection"
 
-        if not self.weights_path.exists():
-            raise ModelConfigError(
-                f"Weights not found at {self.weights_path}. Place pretrained checkpoint there."
-            )
+        try:
+            self.processor1 = AutoImageProcessor.from_pretrained(self.model1_name)
+            self.model1 = AutoModelForImageClassification.from_pretrained(self.model1_name)
+            self.model1.to(self.device)
+            self.model1.eval()
 
-        self.model = self._load_model()
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize((self.settings.input_size, self.settings.input_size)),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
+            self.processor2 = AutoImageProcessor.from_pretrained(self.model2_name)
+            self.model2 = AutoModelForImageClassification.from_pretrained(self.model2_name)
+            self.model2.to(self.device)
+            self.model2.eval()
+
+            self.mtcnn = MTCNN(keep_all=True, device=self.device)
+        except Exception as exc:
+            raise ModelConfigError(f"Failed to load models: {exc}") from exc
+
+        self._initialized = True
 
     @staticmethod
     def _resolve_device(requested_device: str) -> torch.device:
@@ -73,46 +57,74 @@ class DeepfakeDetector:
             return torch.device("cuda")
         return torch.device("cpu")
 
-    def _load_model(self) -> torch.nn.Module:
-        model = timm.create_model(
-            self.settings.architecture,
-            pretrained=False,
-            num_classes=2,
-        )
+    def _extract_fake_probability(self, model, processor, image: Image.Image) -> float:
+        inputs = processor(images=image, return_tensors="pt").to(self.device)
+        with torch.no_grad():
+            outputs = model(**inputs)
+            logits = outputs.logits
+            probabilities = torch.softmax(logits, dim=1)[0]
 
+        id2label = model.config.id2label
+        fake_index = None
+        for idx, label in id2label.items():
+            if label.lower() in ["fake", "deepfake"]:
+                fake_index = idx
+                break
+
+        if fake_index is None:
+            fake_index = 1 if len(probabilities) == 2 else 0
+
+        return float(probabilities[fake_index].item())
+
+    def _detect_faces(self, image: Image.Image) -> tuple[int, list[Image.Image]]:
         try:
-            checkpoint = torch.load(self.weights_path, map_location=self.device, weights_only=False)
-        except Exception as exc:
-            raise ModelConfigError(f"Failed to load weights from {self.weights_path}: {exc}") from exc
+            boxes, _ = self.mtcnn.detect(image)
+            if boxes is None:
+                return 0, []
 
-        state_dict = checkpoint.get("state_dict", checkpoint) if isinstance(checkpoint, dict) else checkpoint
+            faces = []
+            for box in boxes:
+                x1, y1, x2, y2 = [int(coord) for coord in box]
+                x1, y1 = max(0, x1), max(0, y1)
+                x2, y2 = min(image.width, x2), min(image.height, y2)
+                if x2 > x1 and y2 > y1:
+                    face = image.crop((x1, y1, x2, y2))
+                    faces.append(face)
 
-        if not isinstance(state_dict, dict):
-            raise ModelConfigError("Checkpoint format is invalid. Expected state dict or dict with state_dict.")
+            return len(faces), faces
+        except Exception:
+            return 0, []
 
-        cleaned_state_dict = {key.replace("module.", "", 1): value for key, value in state_dict.items()}
-        model.load_state_dict(cleaned_state_dict, strict=False)
-
-        model.to(self.device)
-        model.eval()
-        return model
-
-    def predict(self, image_stream: BinaryIO) -> tuple[str, float]:
+    def predict(self, image_stream: BinaryIO, return_faces: bool = False) -> dict:
         try:
             image = Image.open(image_stream).convert("RGB")
         except UnidentifiedImageError:
             raise
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:
             raise InferenceError(f"Unable to read image: {exc}") from exc
 
         try:
-            tensor = self.transform(image).unsqueeze(0).to(self.device)
-            with torch.no_grad():
-                logits = self.model(tensor)
-                probabilities = torch.softmax(logits, dim=1)[0]
+            score1 = self._extract_fake_probability(self.model1, self.processor1, image)
+            score2 = self._extract_fake_probability(self.model2, self.processor2, image)
 
-            predicted_index = int(torch.argmax(probabilities).item())
-            confidence = float(probabilities[predicted_index].item())
-            return CLASS_NAMES.get(predicted_index, "Fake"), confidence
-        except Exception as exc:  # pragma: no cover
+            avg_fake_score = (score1 + score2) / 2.0
+            avg_fake_score_rounded = round(avg_fake_score, 4)
+
+            if avg_fake_score_rounded >= 0.5:
+                overall_label = "FAKE"
+                overall_confidence = avg_fake_score_rounded
+            else:
+                overall_label = "REAL"
+                overall_confidence = round(1.0 - avg_fake_score_rounded, 4)
+
+            num_faces, faces = self._detect_faces(image)
+
+            return {
+                "overall_label": overall_label,
+                "overall_confidence": overall_confidence,
+                "fake_score": avg_fake_score_rounded,
+                "num_faces": num_faces,
+                "faces": faces if return_faces else [],
+            }
+        except Exception as exc:
             raise InferenceError(f"Model inference failed: {exc}") from exc

@@ -17,11 +17,7 @@ RUN pip install --upgrade pip && pip install -r /tmp/requirements.txt
 
 # Copy application source
 COPY backend /app/backend
-
-# Copy model weights — these directories MUST exist in your repo/build context
-# If they're large, consider mounting as volumes instead of baking into image
-COPY models  /app/models
-COPY weights /app/weights
+COPY models /app/models
 
 # Non-root user for security
 RUN useradd -m appuser && chown -R appuser:appuser /app
