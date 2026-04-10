@@ -57,15 +57,26 @@ export default function HomePage() {
   };
 
   return (
-    <div className="grid gap-12 pb-10">
-      <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-        <article className="flow-panel-strong rounded-4xl border-2 border-blue-300/35 p-6 lg:sticky lg:top-28">
-          <p className="hero-kicker">Main Action</p>
-          <h3 className="headline mt-1 text-3xl">Upload and Analyze</h3>
-          <p className="copy-muted mt-2 text-sm">JPG, JPEG, PNG, WEBP</p>
+    <div className="grid gap-16 pb-10">
+      {/* Hero Section */}
+      <section className="text-center">
+        <p className="hero-kicker mb-4">AI-Powered Deepfake Detection</p>
+        <h1 className="headline text-5xl sm:text-7xl lg:text-8xl leading-[1.1] mb-6">
+          Detect Deepfakes in Seconds
+        </h1>
+        <p className="copy-muted max-w-2xl mx-auto text-lg sm:text-xl">
+          Enterprise-grade ensemble AI models deliver instant, accurate deepfake detection. Production-ready with Docker, Kubernetes, and Jenkins CI/CD.
+        </p>
+      </section>
 
-          <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
-            <label className="line-pill inline-flex w-fit cursor-pointer items-center rounded-full px-4 py-2 text-sm font-semibold" htmlFor="image-input">
+      {/* Analyzer Section */}
+      <section className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-start">
+        <article className="flow-panel-strong rounded-[2rem] border-2 border-blue-300/35 p-8">
+          <h2 className="headline text-3xl mb-2">Upload & Analyze</h2>
+          <p className="copy-muted mb-6">Supports JPG, JPEG, PNG, WEBP</p>
+
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            <label className="cta-primary inline-flex w-fit cursor-pointer items-center rounded-full px-6 py-3 text-sm font-semibold transition hover:opacity-90" htmlFor="image-input">
               Choose Image
             </label>
             <input
@@ -76,68 +87,90 @@ export default function HomePage() {
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
 
-            <p className="line-pill-muted truncate rounded-full px-4 py-2 text-sm">
+            <p className="line-pill-muted truncate rounded-full px-4 py-2 text-sm max-w-md">
               {filename}
             </p>
 
             <button
               type="submit"
               disabled={loading}
-              className="cta-primary w-fit rounded-full px-5 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-70"
+              className="cta-primary w-fit rounded-full px-8 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? "Analyzing..." : "Analyze Image"}
             </button>
           </form>
 
-          {error && <p className="error-note mt-4 rounded-xl px-3 py-2 text-sm">{error}</p>}
-
-          <div className="mt-6 flex flex-wrap gap-2 text-xs">
-            <Link href="/architecture" className="line-pill-muted rounded-full px-3 py-1.5">
-              Architecture
-            </Link>
-            <Link href="/playbook" className="line-pill-muted rounded-full px-3 py-1.5">
-              Playbook
-            </Link>
-          </div>
+          {error && <p className="error-note mt-4 rounded-xl px-4 py-3 text-sm">{error}</p>}
         </article>
 
-        <article className="result-surface rounded-4xl border-2 border-cyan-300/35 p-6">
-          <div className="flex items-center justify-between gap-3">
-            <p className="hero-kicker">Result</p>
-            <span className="copy-muted text-xs">Realtime</span>
+        <article className="result-surface rounded-[2rem] border-2 border-cyan-300/35 p-8">
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <p className="hero-kicker">Analysis Result</p>
+            <span className="copy-muted text-xs">Real-time</span>
           </div>
 
           {!result?.overall_label && !error && (
-            <div className="copy-muted mt-8 text-lg">No prediction yet. Upload an image and run analysis.</div>
+            <div className="copy-muted text-lg py-12">Upload an image to begin analysis</div>
           )}
 
           {result?.overall_label && (
-            <div className={`mt-8 rounded-2xl px-5 py-6 ${result.overall_label === "FAKE" ? "verdict-fake" : "verdict-real"}`}>
-              <h2 className="headline text-5xl leading-none">{result.overall_label}</h2>
-              {typeof result.overall_confidence === "number" && <p className="mt-3 text-base font-medium">Confidence: {(result.overall_confidence * 100).toFixed(2)}%</p>}
+            <div className={`rounded-2xl px-6 py-8 ${result.overall_label === "FAKE" ? "verdict-fake" : "verdict-real"}`}>
+              <h2 className="headline text-6xl leading-none mb-4">{result.overall_label}</h2>
+              {typeof result.overall_confidence === "number" && (
+                <p className="text-xl font-medium">Confidence: {(result.overall_confidence * 100).toFixed(2)}%</p>
+              )}
+              {typeof result.fake_score === "number" && (
+                <p className="copy-muted mt-2 text-sm">Fake Score: {result.fake_score.toFixed(4)}</p>
+              )}
+              {typeof result.num_faces === "number" && (
+                <p className="copy-muted mt-2 text-sm">Faces Detected: {result.num_faces}</p>
+              )}
             </div>
           )}
-
-          <div className="copy-muted mt-8 grid gap-4 text-sm sm:grid-cols-2">
-            <p>Model 1: ViT Deepfake Detection</p>
-            <p>Model 2: Deepfake vs Real Image</p>
-          </div>
         </article>
       </section>
 
-      <section className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-        <article>
-          <p className="hero-kicker">Why SnapSure</p>
-          <h3 className="headline mt-2 text-3xl">Fast verdicts without UI noise.</h3>
-          <p className="copy-muted mt-4 max-w-3xl text-sm leading-relaxed sm:text-base">
-            Artifact-focused inference, confidence scoring, and a simple response contract built for trust and moderation teams.
+      {/* Features Section */}
+      <section className="grid gap-8 lg:grid-cols-3">
+        <article className="flow-panel rounded-[2rem] p-6">
+          <div className="hero-kicker mb-3">Ensemble AI</div>
+          <h3 className="headline text-2xl mb-3">Dual Model Accuracy</h3>
+          <p className="copy-muted text-sm leading-relaxed">
+            Combines ViT and specialized deepfake detectors for superior accuracy. Averages predictions for reliable results.
           </p>
         </article>
 
-        <aside className="flow-panel rounded-[1.8rem] p-5 lg:translate-y-7">
-          <p className="hero-kicker">Reminder</p>
-          <p className="copy-muted mt-3 text-sm leading-relaxed">Use model output as decision support, and keep human review loops for high-impact actions.</p>
-        </aside>
+        <article className="flow-panel rounded-[2rem] p-6">
+          <div className="hero-kicker mb-3">Lightning Fast</div>
+          <h3 className="headline text-2xl mb-3">2-5 Second Analysis</h3>
+          <p className="copy-muted text-sm leading-relaxed">
+            Optimized inference pipeline delivers real-time results without compromising accuracy. Perfect for high-volume workflows.
+          </p>
+        </article>
+
+        <article className="flow-panel rounded-[2rem] p-6">
+          <div className="hero-kicker mb-3">Production Ready</div>
+          <h3 className="headline text-2xl mb-3">DevOps Native</h3>
+          <p className="copy-muted text-sm leading-relaxed">
+            Docker, Kubernetes, and Jenkins CI/CD included. Deploy anywhere with enterprise-grade infrastructure.
+          </p>
+        </article>
+      </section>
+
+      {/* CTA Section */}
+      <section className="flow-panel rounded-[2rem] p-8 text-center">
+        <h2 className="headline text-3xl mb-4">Ready to Detect Deepfakes?</h2>
+        <p className="copy-muted mb-6 max-w-xl mx-auto">
+          Start analyzing images instantly. No API keys required. Fully local and private.
+        </p>
+        <div className="flex flex-wrap gap-3 justify-center">
+          <Link href="/features" className="cta-primary rounded-full px-6 py-3 text-sm font-semibold transition hover:opacity-90">
+            Learn More
+          </Link>
+          <Link href="/about" className="line-pill rounded-full px-6 py-3 text-sm font-semibold transition">
+            About Us
+          </Link>
+        </div>
       </section>
     </div>
   );

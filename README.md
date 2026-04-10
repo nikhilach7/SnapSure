@@ -1,6 +1,16 @@
-# SnapSure — Deepfake Detection
+# SnapSure — AI-Powered Deepfake Detection
 
-SnapSure is a full-stack web application that classifies an uploaded image as **Real** or **Fake** using an ensemble of two state-of-the-art deepfake detection models. The project is built and deployed with a complete DevOps pipeline.
+SnapSure is an enterprise-grade deepfake detection platform that classifies images as **Real** or **Fake** using an ensemble of state-of-the-art AI models. Built for production with complete DevOps infrastructure.
+
+---
+
+## Features
+
+- **Ensemble AI Models**: Combines ViT Deepfake Detection and Deepfake vs Real Image Detection for superior accuracy
+- **Lightning Fast**: 2-5 second analysis with optimized inference pipeline
+- **Production Ready**: Docker, Kubernetes, and Jenkins CI/CD included
+- **Privacy First**: Fully local inference with no external APIs
+- **Modern UI**: Clean, startup-focused design built with Next.js and Tailwind CSS
 
 ---
 
@@ -53,6 +63,13 @@ Face detection is performed using MTCNN but is **not used** for the deepfake cla
 ```
 SnapSure/
 ├── frontend/          # Next.js app (port 3000)
+│   ├── app/
+│   │   ├── page.tsx          # Analyzer (home)
+│   │   ├── features/         # Features page
+│   │   ├── about/            # About page
+│   │   ├── api/predict/      # API route
+│   │   ├── layout.tsx        # Root layout with header/footer
+│   │   └── globals.css       # Modern styling
 ├── backend/           # Flask API  (port 8000)
 ├── models/            # PyTorch inference layer (ensemble)
 ├── docker/            # Dockerfiles
@@ -83,6 +100,9 @@ docker compose up --build
 ```
 
 - Frontend: http://localhost:3000
+  - **Analyzer**: Upload and analyze images
+  - **Features**: Learn about ensemble AI and DevOps capabilities
+  - **About**: Company mission and technology stack
 - Backend API: http://localhost:8000
 
 **Note:** By default, Docker Compose runs in demo mode (`DEMO_MODE=true`) to avoid downloading large models. To use the actual ensemble models, set `DEMO_MODE=false` in `backend/.env.docker`.

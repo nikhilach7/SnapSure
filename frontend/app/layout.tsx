@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Fraunces, Space_Grotesk } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import ThemeToggle from "./components/theme-toggle";
 import "./globals.css";
 
-const displayFont = Fraunces({
+const displayFont = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-display",
 });
 
-const bodyFont = Space_Grotesk({
+const bodyFont = Inter({
   subsets: ["latin"],
   variable: "--font-body",
 });
 
 export const metadata: Metadata = {
-  title: "SnapSure",
-  description: "SnapSure helps teams verify whether an image is authentic or manipulated with fast deepfake artifact detection.",
+  title: "SnapSure - AI-Powered Deepfake Detection",
+  description: "Detect deepfakes instantly with our ensemble AI model. Enterprise-grade accuracy, lightning-fast analysis, production-ready deployment.",
 };
 
 export default function RootLayout({
@@ -40,7 +40,7 @@ export default function RootLayout({
                     SS
                   </span>
                   <div>
-                    <p className="hero-kicker">Engineering Reliability Layer</p>
+                    <p className="hero-kicker">AI Deepfake Detection</p>
                     <h1 className="headline text-lg leading-none sm:text-xl">SnapSure</h1>
                   </div>
                 </Link>
@@ -48,13 +48,10 @@ export default function RootLayout({
                 <div className="flex flex-wrap items-center gap-2">
                   <nav className="flex flex-wrap items-center gap-2 text-sm">
                   <Link href="/" className="nav-link rounded-lg px-3 py-1.5 transition">
-                    Home
+                    Analyze
                   </Link>
-                  <Link href="/architecture" className="nav-link rounded-lg px-3 py-1.5 transition">
-                    Architecture
-                  </Link>
-                  <Link href="/playbook" className="nav-link rounded-lg px-3 py-1.5 transition">
-                    Playbook
+                  <Link href="/features" className="nav-link rounded-lg px-3 py-1.5 transition">
+                    Features
                   </Link>
                   <Link href="/about" className="nav-link rounded-lg px-3 py-1.5 transition">
                     About
@@ -71,18 +68,18 @@ export default function RootLayout({
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="headline text-lg">SnapSure</p>
-                  <p className="hero-kicker">Asymmetric Design. Deterministic Decisions.</p>
+                  <p className="hero-kicker">Enterprise AI. Production Ready.</p>
                 </div>
                 <div className="flex flex-wrap gap-4">
-                  <Link href="/architecture" className="footer-link transition">
-                    Architecture
-                  </Link>
-                  <Link href="/playbook" className="footer-link transition">
-                    Playbook
+                  <Link href="/features" className="footer-link transition">
+                    Features
                   </Link>
                   <Link href="/about" className="footer-link transition">
                     About
                   </Link>
+                  <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="footer-link transition">
+                    GitHub
+                  </a>
                 </div>
               </div>
             </footer>
