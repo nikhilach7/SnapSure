@@ -100,6 +100,4 @@ You should see successful install, build, and Docker stages.
 
 
 
-just to test the webhook i am pushing code to main
-again testing now
-last and final test lets seee
+now we are testing the jenkins automation..lets see
