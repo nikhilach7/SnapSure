@@ -27,19 +27,23 @@ def _build_detector() -> tuple[DeepfakeDetector | None, str | None]:
         return None, str(exc)
 
 
-DETECTOR, DETECTOR_ERROR = _build_detector()
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+DETECTOR, DETECTOR_ERROR = (None, None)
+
+if not DEMO_MODE:
+    DETECTOR, DETECTOR_ERROR = _build_detector()
 
 
 def _ensure_detector() -> tuple[DeepfakeDetector | None, str | None]:
     global DETECTOR, DETECTOR_ERROR
 
+    if DEMO_MODE:
+        return None, None
+
     if DETECTOR is None:
         DETECTOR, DETECTOR_ERROR = _build_detector()
 
     return DETECTOR, DETECTOR_ERROR
-
-
-DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
 
 @app.get("/health")

@@ -4,10 +4,8 @@ metadata:
   name: backend-config
   namespace: snapsure
 data:
-  MODEL_NAME: "xception"
   MODEL_DEVICE: "cpu"
-  WEIGHTS_DIR: "/app/weights"
-  DEMO_MODE: "true"
+  DEMO_MODE: "false"
 
 ---
 apiVersion: v1

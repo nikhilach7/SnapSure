@@ -18,6 +18,7 @@ kubectl apply -f k8s/01-configmap.yaml
 kubectl apply -f k8s/02-backend-deployment.yaml
 kubectl apply -f k8s/03-frontend-deployment.yaml
 kubectl apply -f k8s/04-services.yaml
+kubectl apply -f k8s/05-ingress.yaml
 
 echo "[4/5] Waiting for pods to be Ready..."
 kubectl rollout status deployment/backend  -n snapsure --timeout=120s

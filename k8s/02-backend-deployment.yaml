@@ -6,7 +6,7 @@ metadata:
   labels:
     app: backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: backend
@@ -30,18 +30,18 @@ spec:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 5
         readinessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 2
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 5
         # Resource limits
         resources:
           requests:

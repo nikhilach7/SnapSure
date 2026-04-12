@@ -105,17 +105,17 @@ docker compose up --build
   - **About**: Company mission and technology stack
 - Backend API: http://localhost:8000
 
-**Note:** By default, Docker Compose runs in demo mode (`DEMO_MODE=true`) to avoid downloading large models. To use the actual ensemble models, set `DEMO_MODE=false` in `backend/.env.docker`.
+**Note:** Docker Compose uses the values from `backend/.env.docker`. In the current repo, `DEMO_MODE=false`, so the backend loads the real ensemble models and may download them on first run.
 
-### Using Docker Compose with Real Models
+### Using Docker Compose with Demo Mode
 
 ```bash
-# Edit backend/.env.docker and set DEMO_MODE=false
+# Edit backend/.env.docker and set DEMO_MODE=true
 # Then run:
 docker compose up --build
 ```
 
-The first run will download the ensemble models from Hugging Face (may take 1-2 minutes).
+In demo mode the backend skips model initialization and returns dummy predictions.
 
 Verify backend health:
 
@@ -222,83 +222,15 @@ snapsure-backend    <build>   ...
 
 ## Kubernetes Deployment (Minikube)
 
-### Prerequisites
+See [k8s/README-K8S.md](k8s/README-K8S.md) for the Windows-friendly Minikube workflow.
 
-```bash
-# Install Minikube (Linux)
-curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-sudo install minikube-linux-amd64 /usr/local/bin/minikube
+At a high level:
 
-# Start cluster
-minikube start
-```
-
-### Deploy (one command)
-
-From project root:
-
-```bash
-bash k8s/deploy.sh
-```
-
-This script:
-1. Points Docker to Minikube's daemon
-2. Builds images inside Minikube
-3. Applies all Kubernetes manifests
-4. Waits for pods to be Ready
-5. Prints pod and service status
-
-### Manual Step-by-Step
-
-```bash
-# Point to Minikube's Docker daemon
-eval $(minikube docker-env)
-
-# Build images inside Minikube
-docker build -f docker/backend.Dockerfile  -t snapsure-backend:latest  .
-docker build -f docker/frontend.Dockerfile -t snapsure-frontend:latest .
-
-# Apply manifests
-kubectl apply -f k8s/
-
-# Verify pods
-kubectl get pods -n snapsure
-
-# Verify services
-kubectl get services -n snapsure
-```
-
-### Access the Application
-
-```bash
-minikube service frontend-service -n snapsure
-```
-
-This opens the app in your browser via the NodePort (30300).
-
-Or access directly:
-
-```bash
-minikube ip   # get cluster IP
-# Then open http://<minikube-ip>:30300
-```
-
-### Useful Commands
-
-```bash
-# Watch pods come up
-kubectl get pods -n snapsure -w
-
-# Check logs
-kubectl logs -l app=backend  -n snapsure
-kubectl logs -l app=frontend -n snapsure
-
-# Describe a pod
-kubectl describe pod -l app=backend -n snapsure
-
-# Delete everything
-kubectl delete namespace snapsure
-```
+1. Start Minikube.
+2. Build the images inside the Minikube Docker daemon.
+3. Apply the manifests in `k8s/`.
+4. Access the frontend with `minikube service frontend-service -n snapsure` or `kubectl port-forward`.
+5. Enable the NGINX ingress addon if you want to use `snapsure.local`.
 
 ---
 
@@ -379,7 +311,7 @@ npm run dev
 | Variable | Default | Description |
 |---|---|---|
 | `MODEL_DEVICE` | `cpu` | Device for model inference |
-| `DEMO_MODE` | `true` | Enabled by default for Docker Compose to avoid model downloads in demo mode |
+| `DEMO_MODE` | `false` | If `true`, the backend skips model initialization and returns dummy predictions |
 
 ---
 

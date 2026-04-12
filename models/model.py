@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import BinaryIO
+from typing import BinaryIO, IO, Any
 
 import torch
 from facenet_pytorch import MTCNN
@@ -95,7 +95,7 @@ class DeepfakeDetector:
         except Exception:
             return 0, []
 
-    def predict(self, image_stream: BinaryIO, return_faces: bool = False) -> dict:
+    def predict(self, image_stream: BinaryIO | IO[bytes] | Any, return_faces: bool = False) -> dict:
         try:
             image = Image.open(image_stream).convert("RGB")
         except UnidentifiedImageError:
