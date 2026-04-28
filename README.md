@@ -392,4 +392,3 @@ Remove-Item -Recurse -Force $env:USERPROFILE\.cache\huggingface\hub\
 1. Use GPU if available: Set `MODEL_DEVICE=cuda` in environment
 2. Ensure CUDA drivers are installed
 3. Consider using a smaller model for faster inference
-test
