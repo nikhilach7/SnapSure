@@ -1,104 +1,114 @@
-# Jenkins Setup for SnapSure
+# Jenkins Setup
 
-This guide explains Jenkins in simple steps.
+This project uses one Jenkins pipeline defined in `Jenkinsfile`.
 
-## What Jenkins Does Here
+## What the pipeline does
 
-The current pipeline (from `Jenkinsfile`) does this:
+The pipeline runs these stages:
 
-1. Pull code from GitHub
-2. Install backend and frontend dependencies
-3. Build frontend
-4. Run checks (lint/tests)
-5. Build Docker images
-6. On `main`, run `docker compose up -d` and quick health checks
+1. Setup frontend dependencies
+2. Build frontend and run best-effort checks
+3. Build Docker images
+4. Start the app with Docker Compose and run smoke checks
+5. Start or recreate Minikube
+6. Load images into Minikube
+7. Apply Kubernetes manifests from `k8s/`
+8. Verify Kubernetes rollout
+9. Prune unused image data
 
-It does not push Docker images to Docker Hub.
+## Jenkins machine requirements
 
-## What You Need
+The Jenkins agent must have:
 
-- Jenkins running
-- Git installed on Jenkins machine
-- Docker installed on Jenkins machine
-- Node + npm installed
-- Python installed
-- Repo URL
+- Git
+- Docker
+- Node.js and npm
+- Python
+- Minikube
+- kubectl
 
-## Step 1: Create Jenkins Pipeline Job
+Quick check:
 
-1. Open Jenkins
-2. Click `New Item`
-3. Job name: `SnapSure-Pipeline`
-4. Choose `Pipeline`
-5. Click `OK`
+```bash
+git --version
+docker --version
+npm --version
+python --version
+minikube version
+kubectl version --client
+```
 
-In job config:
+## Create the job
+
+Create a Jenkins Pipeline job with:
 
 - Definition: `Pipeline script from SCM`
 - SCM: `Git`
-- Repository URL: your GitHub URL
 - Branch: `*/main`
 - Script Path: `Jenkinsfile`
-- Credentials: needed only if repo is private
 
-Save.
+The pipeline already includes `githubPush()` as a trigger, so if Jenkins is reachable from GitHub, pushes can trigger builds automatically.
 
-## Step 2: Enable Auto Build on GitHub Push
+## What to expect
 
-### Jenkins
+On a successful run:
 
-1. Open job config
-2. Under Build Triggers, enable `GitHub hook trigger for GITScm polling`
-3. Save
+- Docker Compose brings up the app on the Jenkins machine
+- Frontend is available on `http://localhost:3000`
+- Backend is available on `http://localhost:8000`
+- Minikube is updated with the latest images
+- Kubernetes resources in namespace `snapsure` are applied and verified
 
-### GitHub
+## Important runtime behavior
 
-1. Open repo settings
-2. Go to `Webhooks` and click `Add webhook`
-3. Payload URL: `http://<jenkins-host>:8080/github-webhook/`
-4. Content type: `application/json`
-5. Events: `Just the push event`
-6. Save
+- The backend image is built with CPU-only PyTorch wheels.
+- The backend model cache is not stored inside the image.
+- Docker Compose uses a named volume for model cache.
+- Kubernetes uses a Minikube hostPath cache at `/data/snapsure/model-cache`.
 
-Now every push triggers Jenkins.
+This reduces repeated image bloat and avoids re-downloading models on every container restart.
 
-## Step 3: Run Once Manually
+## Common failures
 
-1. Open `SnapSure-Pipeline`
-2. Click `Build Now`
-3. Check console logs
+### Docker build fails
 
-You should see successful install, build, and Docker stages.
+Check:
 
-## Credentials Guide
+- Docker Desktop or Docker Engine is running
+- the Jenkins user can access Docker
 
-- Public repo: usually no GitHub credential needed
-- Private repo: add GitHub PAT credential in Jenkins
-- Docker credential: not needed unless you add image push later
+### Compose smoke check fails
 
-## Common Issues
+Check:
 
-| Problem | Reason | Fix |
-|---|---|---|
-| Build not auto-starting | Webhook not set correctly | Recreate webhook with `/github-webhook/` |
-| Clone fails | Private repo without credentials | Add GitHub PAT credentials |
-| Docker build fails | Jenkins user cannot use Docker | Give Docker permission/access |
-| Health check fails | Old container/port conflict | Stop old containers and rerun |
+- `docker compose logs backend`
+- `docker compose logs frontend`
 
-## Good Team Practice
+If the backend is starting for the first time, model download may take some time.
 
-1. Protect `main` branch on GitHub
-2. Merge via pull requests
-3. Keep Jenkins running on every push to `main`
+### Minikube start fails
 
-## Optional Next Upgrades
+Check:
 
-1. Add proper backend unit tests
-2. Push images to Docker Hub or another registry
-3. Add Slack or email notifications
-4. Add timeout and retry rules
+- `minikube status`
+- `kubectl cluster-info`
 
+The pipeline recreates Minikube when it detects an unhealthy cluster.
 
+### Kubernetes rollout fails
 
-now we are testing the jenkins automation..lets see
-again we are trying, hope it works
+Check:
+
+```bash
+kubectl get pods -n snapsure
+kubectl describe deployment backend -n snapsure
+kubectl logs -l app=backend -n snapsure --tail=50
+kubectl logs -l app=frontend -n snapsure --tail=50
+```
+
+## Notes
+
+- The docs here only describe the current pipeline.
+- If you change the Jenkinsfile, update this file with the same level of detail and no more.
+- For Kubernetes manifest details, see [k8s/README-K8S.md](k8s/README-K8S.md).
+- testing jenkins automation today

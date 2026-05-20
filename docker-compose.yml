@@ -6,6 +6,12 @@ services:
       dockerfile: docker/backend.Dockerfile
     env_file:
       - ./backend/.env.docker
+    environment:
+      HF_HOME: /home/appuser/.cache/huggingface
+      TORCH_HOME: /home/appuser/.cache/torch
+      XDG_CACHE_HOME: /home/appuser/.cache
+    volumes:
+      - backend-model-cache:/home/appuser/.cache
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -27,3 +33,6 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+
+volumes:
+  backend-model-cache:

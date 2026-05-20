@@ -1,126 +1,78 @@
-# SnapSure Kubernetes Setup
+# Kubernetes Setup
 
-This guide runs SnapSure on local Kubernetes with Minikube on Windows.
+This folder contains the Minikube deployment for SnapSure.
 
-## What This Deployment Does
+## Files
 
-- Creates the `snapsure` namespace
-- Starts the backend and frontend as Kubernetes Deployments
-- Exposes the backend with a ClusterIP Service and the frontend with a NodePort Service
-- Includes an optional NGINX Ingress manifest
-- Runs the backend in demo mode by default so the cluster does not need a separate weights mount
+- `00-namespace.yaml`: creates namespace `snapsure`
+- `01-configmap.yaml`: backend and frontend environment values
+- `02-backend-deployment.yaml`: backend deployment
+- `03-frontend-deployment.yaml`: frontend deployment
+- `04-services.yaml`: backend ClusterIP and frontend NodePort
+- `05-ingress.yaml`: optional ingress for `snapsure.local`
+- `deploy.ps1`: Windows helper
+- `deploy.sh`: shell helper
 
-## Prerequisites
+## Current behavior
 
-- Docker Desktop installed and running
-- `kubectl` installed
-- `minikube` installed
-- A local Kubernetes cluster created with Minikube
+The Kubernetes setup is for local Minikube use.
 
-## Windows Setup From Scratch
+Important points:
 
-If you do not already have `kubectl` or `minikube`, install them on Windows first.
+- backend image: `snapsure-backend:latest`
+- frontend image: `snapsure-frontend:latest`
+- both deployments use `imagePullPolicy: Never`
+- frontend service is exposed on NodePort `30300`
+- backend service stays internal as `backend-service:8000`
 
-### 1) Install Docker Desktop
+## Backend model cache
 
-Download and install Docker Desktop from the official Docker website, then start it once and make sure it is running in the system tray.
+The backend pod mounts persistent cache storage at:
 
-### 2) Install `kubectl`
+- `/home/appuser/.cache`
 
-The easiest options on Windows are `winget` or Chocolatey.
+That storage is backed by:
 
-```powershell
-winget install -e --id Kubernetes.kubectl
+- hostPath `/data/snapsure/model-cache`
+
+This is used for:
+
+- Hugging Face model cache
+- Torch cache
+
+Result:
+
+- first startup downloads the models
+- later pod restarts reuse the cache
+- model weights are not stored in the image itself
+
+## Backend runtime settings
+
+`01-configmap.yaml` sets:
+
+- `MODEL_DEVICE=cpu`
+- `DEMO_MODE=false`
+- `HF_HOME=/home/appuser/.cache/huggingface`
+- `TORCH_HOME=/home/appuser/.cache/torch`
+- `XDG_CACHE_HOME=/home/appuser/.cache`
+
+`02-backend-deployment.yaml` also includes:
+
+- an init container to prepare cache directory permissions
+- a startup probe for slow first-time model download
+- liveness and readiness probes on `/health`
+
+## Manual deploy
+
+Start Minikube:
+
+```bash
+minikube start --driver=docker --container-runtime=docker
 ```
 
-If you use Chocolatey:
+Apply manifests:
 
-```powershell
-choco install kubernetes-cli
-```
-
-Verify the install:
-
-```powershell
-kubectl version --client
-```
-
-If PowerShell says the command is not found, open a new terminal window so PATH updates load.
-
-### 3) Install Minikube
-
-Install Minikube with `winget` or Chocolatey:
-
-```powershell
-winget install -e --id Kubernetes.minikube
-```
-
-Or:
-
-```powershell
-choco install minikube
-```
-
-Verify it:
-
-```powershell
-minikube version
-```
-
-### 4) Start the local cluster
-
-Start Minikube after Docker Desktop is running:
-
-```powershell
-minikube start --driver=docker
-```
-
-This creates your local Kubernetes cluster on Windows.
-
-### 5) Check that everything is ready
-
-```powershell
-kubectl get nodes
-kubectl cluster-info
-```
-
-You should see one Minikube node in a `Ready` state.
-
-## Start Minikube After Installation
-
-```powershell
-minikube start
-```
-
-If you already started Minikube in the setup section above, you can skip this step.
-
-If you want to use the Ingress manifest, also enable the ingress addon:
-
-```powershell
-minikube addons enable ingress
-```
-
-## Build Images for Minikube
-
-Use the PowerShell helper from the repository root:
-
-```powershell
-./k8s/deploy.ps1 deploy-minikube
-```
-
-This command:
-
-1. Points Docker to the Minikube daemon
-2. Builds `snapsure-backend:latest` and `snapsure-frontend:latest`
-3. Applies all manifests in `k8s/`
-4. Waits for both Deployments to roll out
-
-
-## Deploy Manifests Manually
-
-If you want to apply files yourself, run them in this order:
-
-```powershell
+```bash
 kubectl apply -f k8s/00-namespace.yaml
 kubectl apply -f k8s/01-configmap.yaml
 kubectl apply -f k8s/02-backend-deployment.yaml
@@ -129,50 +81,81 @@ kubectl apply -f k8s/04-services.yaml
 kubectl apply -f k8s/05-ingress.yaml
 ```
 
-## Access the App
+Wait for rollout:
 
-Fastest option with Minikube:
-
-```powershell
-minikube service frontend-service -n snapsure
+```bash
+kubectl rollout status deployment/backend -n snapsure --timeout=10m
+kubectl rollout status deployment/frontend -n snapsure --timeout=10m
 ```
 
-That opens the NodePort service in your browser.
+## Access the app
 
-You can also port-forward:
+Get the Minikube IP:
 
-```powershell
-kubectl port-forward -n snapsure svc/frontend-service 3000:3000
-```
-
-Then open `http://localhost:3000`.
-
-If you enabled ingress, add `snapsure.local` to your hosts file using the Minikube IP:
-
-```powershell
+```bash
 minikube ip
 ```
 
-Map that IP to `snapsure.local` and browse `http://snapsure.local`.
+Open:
 
-## Important Runtime Notes
+- `http://<minikube-ip>:30300`
 
-- `DEMO_MODE: "true"` is set in `k8s/01-configmap.yaml`, so the backend skips model initialization and returns demo predictions.
-- There is no `weights/` hostPath mount in the manifests.
-- If you want real Hugging Face model inference in Kubernetes, set `DEMO_MODE` to `"false"` and increase the backend memory limits.
+For backend access from your machine:
 
-## Useful Commands
+```bash
+kubectl port-forward svc/backend-service -n snapsure 8000:8000
+```
 
-```powershell
+Then open:
+
+- `http://localhost:8000/health`
+
+## Useful commands
+
+Check resources:
+
+```bash
 kubectl get all -n snapsure
-kubectl logs -f -n snapsure deployment/backend
-kubectl logs -f -n snapsure deployment/frontend
-kubectl describe pod -n snapsure -l app=backend
-kubectl describe pod -n snapsure -l app=frontend
+kubectl get pods -n snapsure -o wide
+kubectl get services -n snapsure
+```
+
+Check logs:
+
+```bash
+kubectl logs -l app=backend -n snapsure --tail=50
+kubectl logs -l app=frontend -n snapsure --tail=50
+```
+
+Restart deployments:
+
+```bash
+kubectl rollout restart deployment/backend -n snapsure
+kubectl rollout restart deployment/frontend -n snapsure
 ```
 
 ## Cleanup
 
-```powershell
+Delete the app:
+
+```bash
 kubectl delete namespace snapsure
 ```
+
+Stop Minikube:
+
+```bash
+minikube stop
+```
+
+Delete the cluster:
+
+```bash
+minikube delete
+```
+
+## Notes
+
+- If you delete the full Minikube cluster, the hostPath model cache is deleted with it.
+- On the next fresh cluster start, the backend will download the models again.
+- These docs describe the current manifests only. They are intentionally short.

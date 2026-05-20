@@ -17,6 +17,14 @@ const bodyFont = Inter({
 export const metadata: Metadata = {
   title: "SnapSure - AI-Powered Deepfake Detection",
   description: "Detect deepfakes instantly with our ensemble AI model. Enterprise-grade accuracy, lightning-fast analysis, production-ready deployment.",
+  icons: {
+    icon: [
+      {
+        url: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23ffffff' rx='20'/><text x='50' y='65' font-size='60' font-weight='bold' fill='%23000000' text-anchor='middle' font-family='sans-serif'>SS</text></svg>",
+        type: "image/svg+xml",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

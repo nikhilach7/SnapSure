@@ -6,6 +6,9 @@ metadata:
 data:
   MODEL_DEVICE: "cpu"
   DEMO_MODE: "false"
+  XDG_CACHE_HOME: "/home/appuser/.cache"
+  HF_HOME: "/home/appuser/.cache/huggingface"
+  TORCH_HOME: "/home/appuser/.cache/torch"
 
 ---
 apiVersion: v1

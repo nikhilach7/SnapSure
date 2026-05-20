@@ -3,7 +3,10 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    XDG_CACHE_HOME=/home/appuser/.cache \
+    HF_HOME=/home/appuser/.cache/huggingface \
+    TORCH_HOME=/home/appuser/.cache/torch
 
 # Install curl for healthcheck (slim image doesn't have it)
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
@@ -20,7 +23,9 @@ COPY backend /app/backend
 COPY models /app/models
 
 # Non-root user for security
-RUN useradd -m appuser && chown -R appuser:appuser /app
+RUN useradd -m -u 10001 appuser \
+    && mkdir -p /home/appuser/.cache/huggingface /home/appuser/.cache/torch \
+    && chown -R appuser:appuser /app /home/appuser/.cache
 USER appuser
 
 EXPOSE 8000
